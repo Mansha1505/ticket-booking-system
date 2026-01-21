@@ -7,23 +7,28 @@ const { protect, adminCheck } = require('../middleware/authMiddleware');
 // @route   GET /api/events
 // @access  Public
 router.get('/', async (req, res) => {
-    try {
-        const keyword = req.query.keyword
-            ? {
-                title: {
-                    $regex: req.query.keyword,
-                    $options: 'i',
-                },
-            }
-            : {};
+  try {
+    const query = {};
 
-        const category = req.query.category ? { category: req.query.category } : {};
-
-        const events = await Event.find({ ...keyword, ...category }).sort({ date: 1 });
-        res.json(events);
-    } catch (error) {
-        res.status(500).json({ message: 'Server Error' });
+    // Category filter has priority
+    if (req.query.category) {
+      query.category = req.query.category;
     }
+
+    // Keyword search (only when category not selected)
+    else if (req.query.keyword) {
+      query.title = {
+        $regex: req.query.keyword,
+        $options: 'i'
+      };
+    }
+
+    const events = await Event.find(query);
+    res.json(events);
+  } catch (error) {
+    console.error('Error fetching events:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // @desc    Fetch single event
